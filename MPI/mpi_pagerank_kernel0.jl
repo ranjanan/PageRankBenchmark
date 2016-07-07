@@ -37,17 +37,17 @@ function generate_vertices!(start_vertex, end_vertex, rand_array, scale)
     # loop over each scale
     @inbounds for j in 1:edges
         rand!(rand_array)
-        start_edge = zero(eltype(start_vertex))
-        end_edge = zero(eltype(end_vertex))
+        start_offset = zero(eltype(start_vertex))
+        end_offset = zero(eltype(end_vertex))
         @inbounds for i in 1:scale
             k = 1 << (i - 2)
             start_bit = rand_array[i] > a_plus_b
             end_bit = rand_array[i + scale] > ifelse(start_bit, c_norm, a_norm)
-            start_edge += k * start_bit
-            end_edge += k * end_bit
+            start_offset += k * start_bit
+            end_offset += k * end_bit
         end
-        start_vertex[j] += start_edge
-        end_vertex[j] += end_edge
+        start_vertex[j] += start_offset
+        end_vertex[j] += end_offset
     end
 
     return start_vertex, end_vertex
