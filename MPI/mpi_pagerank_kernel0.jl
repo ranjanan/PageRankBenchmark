@@ -11,8 +11,8 @@ MPI.Init()
 function work_arrays(scale, edges_per_vertex)
     m = total_edges(scale, edges_per_vertex)
     start_vertex, end_vertex = ones(Int, m), ones(Int, m)
-    start_rands, end_rands = Vector{Float64}(m), Vector{Float64}(m)
-    return start_vertex, end_vertex, start_rands, end_rands
+    rand_array = Vector{Float64}(2 * scale)
+    return start_vertex, end_vertex, rand_array
 end
 
 # equivalent to `KronGraph500NoPerm` in the original version
@@ -20,7 +20,7 @@ function generate_vertices(scale, edges_per_vertex)
     generate_vertices!(work_arrays(scale, edges_per_vertex)..., scale)
 end
 
-function generate_vertices!(start_vertex, end_vertex, start_rands, end_rands, scale)
+function generate_vertices!(start_vertex, end_vertex, rand_array, scale)
     edges = length(start_vertex)
 
     # set R-MAT (2x2 Kronecker) coefficients
@@ -35,16 +35,19 @@ function generate_vertices!(start_vertex, end_vertex, start_rands, end_rands, sc
     a_norm = a / a_plus_b
 
     # loop over each scale
-    for i in 1:scale
-        k = 2^(i - 1)
-        rand!(start_rands)
-        rand!(end_rands)
-        @inbounds @simd for j in 1:edges
-            start_bit = start_rands[j] > a_plus_b
-            end_bit = end_rands[j] > ifelse(start_bit, c_norm, a_norm)
-            start_vertex[j] += k * start_bit
-            end_vertex[j] += k * end_bit
+    @inbounds for j in 1:edges
+        rand!(rand_array)
+        start_edge = zero(eltype(start_vertex))
+        end_edge = zero(eltype(end_vertex))
+        @inbounds for i in 1:scale
+            k = 1 << (i - 2)
+            start_bit = rand_array[i] > a_plus_b
+            end_bit = rand_array[i + scale] > ifelse(start_bit, c_norm, a_norm)
+            start_edge += k * start_bit
+            end_edge += k * end_bit
         end
+        start_vertex[j] += start_edge
+        end_vertex[j] += end_edge
     end
 
     return start_vertex, end_vertex
@@ -76,7 +79,7 @@ function kernel0_serial(path, myfiles, scale, edges_per_vertex)
     buffer = IOBuffer()
 
     # initialize work arrays
-    start_vertex, end_vertex, start_rands, end_rands = work_arrays(scale, edges_per_vertex)
+    start_vertex, end_vertex, rand_array = work_arrays(scale, edges_per_vertex)
 
     # write to files
     for file_index in myfiles
@@ -84,7 +87,7 @@ function kernel0_serial(path, myfiles, scale, edges_per_vertex)
         file_name = joinpath(path, "$(file_index).tsv")
 
         # fill vertex vectors with computed edges
-        generate_vertices!(start_vertex, end_vertex, start_rands, end_rands, scale)
+        generate_vertices!(start_vertex, end_vertex, rand_array, scale)
 
         # write vertices to the file
         write_vertices!(buffer, file_name, start_vertex, end_vertex)
