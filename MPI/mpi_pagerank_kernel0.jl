@@ -10,7 +10,7 @@ MPI.Init()
 
 function work_arrays(scale, edges_per_vertex)
     m = total_edges(scale, edges_per_vertex)
-    start_vertex, end_vertex = ones(Int, m), ones(Int, m)
+    start_vertex, end_vertex = Vector{Int}(m), Vector{Int}(m)
     rand_array = Vector{Float64}(2 * scale)
     return start_vertex, end_vertex, rand_array
 end
@@ -37,17 +37,17 @@ function generate_vertices!(start_vertex, end_vertex, rand_array, scale)
     # loop over each scale
     @inbounds for j in 1:edges
         rand!(rand_array)
-        start_offset = zero(eltype(start_vertex))
-        end_offset = zero(eltype(end_vertex))
+        start_node = one(eltype(start_vertex))
+        end_node = one(eltype(end_vertex))
         @inbounds for i in 1:scale
             k = 1 << (i - 2)
             start_bit = rand_array[i] > a_plus_b
             end_bit = rand_array[i + scale] > ifelse(start_bit, c_norm, a_norm)
-            start_offset += k * start_bit
-            end_offset += k * end_bit
+            start_node += k * start_bit
+            end_node += k * end_bit
         end
-        start_vertex[j] += start_offset
-        end_vertex[j] += end_offset
+        start_vertex[j] = start_node
+        end_vertex[j] = end_node
     end
 
     return start_vertex, end_vertex
@@ -91,10 +91,6 @@ function kernel0_serial(path, myfiles, scale, edges_per_vertex)
 
         # write vertices to the file
         write_vertices!(buffer, file_name, start_vertex, end_vertex)
-
-        # reset vertices for next iteration
-        fill!(start_vertex, 1)
-        fill!(end_vertex, 1)
     end
 end
 
