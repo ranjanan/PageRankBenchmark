@@ -135,7 +135,7 @@ function kronGraph500NoPerm4(scl, EdgesPerVertex)
     a, b, c = 0.57, 0.19, 0.19
     d = 1 - (a + b + c)                   # Set R-MAT (2x2 Kronecker) coefficeints.
 
-    ij1, ij2 = ones(Int, m), ones(Int, m) # Initialize index arrays.
+    ij1, ij2 = Array(Int, m), Array(Int, m) # Initialize index arrays.
     ab = a + b                            # Normalize coefficients.
     c_norm = c/(1 - (a + b))
     a_norm = a/(a + b)
@@ -143,8 +143,8 @@ function kronGraph500NoPerm4(scl, EdgesPerVertex)
     randbuf = Array(Float64, 2scl)
     @inbounds for i = 1:m
         rand!(randbuf)
-        ij1_i = zero(eltype(ij1))
-        ij2_i = zero(eltype(ij2))
+        ij1_i = one(eltype(ij1))
+        ij2_i = one(eltype(ij2))
         @inbounds for ib = 1:scl                   # Loop over each scale.
             sc = 1 << (ib - 2)
             ii_bit  = randbuf[ib] > ab
