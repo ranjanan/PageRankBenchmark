@@ -63,11 +63,11 @@ end
         b = gpurand(a)
 
         # calculate per-thread values
-        sc = 1 << (ib - 2)
+        k = 1 << (ib - 1)
         ii_bit  = a > ab
         jj_bit  = b > ifelse(ii_bit, c_norm, a_norm)
-        ij1_buf[ib] = sc * ii_bit
-        ij2_buf[ib] = sc * jj_bit
+        ij1_buf[ib] = k * ii_bit
+        ij2_buf[ib] = k * jj_bit
         sync_threads()
 
         # parallel reduction
