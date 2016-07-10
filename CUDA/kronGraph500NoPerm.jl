@@ -54,7 +54,7 @@ end
 
     if i <= m
         # get references to shmem
-        temp = cuSharedMem(T)
+        temp = @cuSharedMem(T)
         ij1_buf = temp
         ij2_buf = temp+2*scl*sizeof(T)
 
