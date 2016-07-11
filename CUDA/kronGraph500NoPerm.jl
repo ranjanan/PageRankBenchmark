@@ -110,4 +110,98 @@ end
     return nothing
 end
 
+
+#
+# Version using intra-warp shuffle and intra-block shmem
+#
+
+function kronGraph500NoPerm_shuffle(scl, EdgesPerVertex)
+    n = 2^scl                             # Set  power of number of vertices..
+
+    m = EdgesPerVertex * n                # Compute total number of edges to generate.
+
+    a, b, c = 0.57, 0.19, 0.19
+    d = 1 - (a + b + c)                   # Set R-MAT (2x2 Kronecker) coefficeints.
+
+    ij1_d, ij2_d = CuArray(Int, m), CuArray(Int, m) # Initialize index arrays.
+    ab = a + b                            # Normalize coefficients.
+    c_norm = c/(1 - (a + b))
+    a_norm = a/(a + b)
+
+    m_x = min(65535, m)
+    m_y = ceil(Int, m/m_x)
+    @cuda ((m_x, m_y), nearest_warpsize(scl)) kronGraph500NoPerm_shuffle_kernel(m, scl, ab, a_norm, c_norm, ij1_d, ij2_d)
+
+    ij1 = Array(ij1_d)
+    free(ij1_d)
+    ij2 = Array(ij2_d)
+    free(ij2_d)
+
+    return ij1, ij2
+end
+
+@target ptx function reduce_warp{T,F<:Function}(val::T, op::F)
+    offset = warpsize ÷ 2
+    while offset > 0
+        val = op(val, shfl_down(val, offset))
+        offset ÷= 2
+    end
+    return val
+end
+
+@target ptx function reduce_block{T,F<:Function}(val::T, op::F)
+    shared = @cuSharedMem(T, 32)
+
+    wid, lane = fldmod1(threadIdx().x, warpsize)
+
+    val = reduce_warp(val, op)
+
+    if lane == 1
+        shared[wid] = val
+    end
+
+    sync_threads()
+
+    # read from shared memory only if that warp existed
+    val = (threadIdx().x <= fld(blockDim().x, warpsize)) ? shared[lane] : zero(T)
+
+    if wid == 1
+        # final reduce within first warp
+        val = reduce_warp(val, op)
+    end
+
+    return val
+end
+
+@target ptx function kronGraph500NoPerm_shuffle_kernel{T}(m, scl, ab, a_norm, c_norm, ij1::CuDeviceArray{T}, ij2::CuDeviceArray{T})
+    i = (blockIdx().y-1) * gridDim().x + blockIdx().x
+
+    ib = threadIdx().x
+
+    if i <= m && ib <= scl
+        seed64 = Int64(ib) << 32 + i
+        a = gpurand(seed64)
+        b = gpurand(a)
+
+        # calculate per-thread values
+        k = 1 << (ib - 1)
+        ii_bit  = a > ab
+        jj_bit  = b > ifelse(ii_bit, c_norm, a_norm)
+        ij1_val = k * ii_bit
+        ij2_val = k * jj_bit
+
+        # parallel reduction
+        ij1_val = reduce_block(ij1_val, +)
+        ij2_val = reduce_block(ij2_val, +)
+
+        # write back (also includes "initialization" with one)
+        if ib == 1
+            ij1[i] = one(T) + ij1_val
+            ij2[i] = one(T) + ij2_val
+        end
+    end
+
+    return nothing
+end
+
 end
