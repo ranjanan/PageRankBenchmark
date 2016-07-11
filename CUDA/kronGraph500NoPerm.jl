@@ -2,6 +2,35 @@ module PageRank
 
 using CUDAdrv, CUDAnative
 
+
+#
+# Utility functions
+#
+
+@target ptx function xorshift64(key::UInt64)
+    key = (~key) + (key << 21)
+    key = key $ (key >> 24)
+    key = (key + (key << 3)) + (key << 8)
+    key = key $ (key >> 14)
+    key = (key + (key << 2)) + (key << 4)
+    key = key $ (key >> 28)
+    key = key + (key << 31)
+    return key
+end
+
+"Return a 64-bit floating point number between 0 and 1"
+@target ptx function gpurand(seed)
+    input = reinterpret(UInt64, Float64(seed))
+    val = xorshift64(input)::UInt64
+    output = reinterpret(Float64, val / typemax(UInt64))
+    return output
+end
+
+
+#
+# Basic version with shared memory parallel reduction
+#
+
 function kronGraph500NoPerm(scl, EdgesPerVertex)
     n = 2^scl                             # Set  power of number of vertices..
 
@@ -25,25 +54,6 @@ function kronGraph500NoPerm(scl, EdgesPerVertex)
     free(ij2_d)
 
     return ij1, ij2
-end
-
-@target ptx function xorshift64(key::UInt64)
-    key = (~key) + (key << 21)
-    key = key $ (key >> 24)
-    key = (key + (key << 3)) + (key << 8)
-    key = key $ (key >> 14)
-    key = (key + (key << 2)) + (key << 4)
-    key = key $ (key >> 28)
-    key = key + (key << 31)
-    return key
-end
-
-"Return a 64-bit floating point number between 0 and 1"
-@target ptx function gpurand(seed)
-    input = reinterpret(UInt64, Float64(seed))
-    val = xorshift64(input)::UInt64
-    output = reinterpret(Float64, val / typemax(UInt64))
-    return output
 end
 
 @target ptx function kronGraph500NoPerm_kernel{T}(m, ab, a_norm, c_norm, ij1::CuDeviceArray{T}, ij2::CuDeviceArray{T})
