@@ -1,5 +1,3 @@
-#!/usr/local/Julia/latest/bin/julia
-#
 using Base.Threads
 
 function generator_inner(SCALE::Int, EdgesPerVertex::Int, M::Int, ij1::Array{Int},
@@ -32,23 +30,14 @@ function generator_inner(SCALE::Int, EdgesPerVertex::Int, M::Int, ij1::Array{Int
     end
 end
 
-function generator(SCALE,EdgesPerVertex)
+function KronGraph500NoPerm(SCALE,EdgesPerVertex)
     N = 2.^SCALE                       # Set  power of number of vertices..
     M = round(Int, EdgesPerVertex .* N)     # Compute total number of edges to generate.
     ij1 = ones(Int, M)
     ij2 = ones(Int, M)
-    ccall(:jl_threading_run, Void, (Any,), Core.svec(()->(generator_inner(SCALE, EdgesPerVertex, M, ij1, ij2))))
+#    println(N)
+#    println(EdgesPerVertex)
+    ccall(:jl_threading_run, Void, (Any,), Core.svec(()->(generator_inner(SCALE, Int(EdgesPerVertex), M, ij1, ij2))))
+#    println("ij1, ij2 ", ij1[1], " ", ij2[1])
     return ij1, ij2
 end
-
-println("Threads: ",nthreads())
-
-
-SCALE=18
-EdgesPerVertex = 16
-tic()
-ut, vt=generator(SCALE, EdgesPerVertex)
-K0time=toq()
-
-#println(ut[1]," ", vt[1])
-println("Total Time: " * string(K0time))
