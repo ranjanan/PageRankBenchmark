@@ -5,11 +5,20 @@ Optimized function that writes list of edges as tab seperated values
 Tries to be perform as little allocation as possible
 """
 function writetsv(file, ij1, ij2)
+   arr = Vector{UInt8}(64)
    for (i, j) in zip(ij1, ij2)
-      write(file, dec(i))
-      write(file, '\t')
-      write(file, dec(j))
-      write(file, '\n')
+      nchars = dec!(arr, i)
+      writeto(file, arr, nchars)
+      write(file, UInt8('\t'))
+      nchars = dec!(arr, j)
+      writeto(file, arr, nchars)
+      write(file, UInt8('\n'))
+   end
+end
+
+function writeto(io, arr, nchars)
+   @inbounds for i in 1:nchars
+      write(io, arr[i])
    end
 end
 
@@ -23,6 +32,20 @@ function readtsv(file)
       push!(ij2, parseuntil(file,NL))
    end
    ij1, ij2
+end
+
+# Assumes positive number
+function dec!(arr::Vector{UInt8}, x::Int64)
+   nchars = i = Base.ndigits0z(x)
+   if i > length(arr) # only resize if array is to small
+      resize!(arr, i)
+   end
+   while i > 0
+      arr[i] = '0'+rem(x,10)
+      x ÷= 10
+      i -= 1
+   end
+   nchars
 end
 
 # Exploit the domain knowledge we have
