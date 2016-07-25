@@ -1,5 +1,3 @@
-module PageRank
-
 # Almost literal translation of MATLAB code
 function kronGraph500NoPerm(scl, EdgesPerVertex)
 # Graph500NoPerm: Generates graph edges using the same 2x2 Kronecker algorithm (R-MAT) as the Graph500 benchmark, but no permutation of vertex labels is performed.
@@ -280,6 +278,4 @@ function kronGraph500NoPerm6(scl, EdgesPerVertex)
     end
 
     return ij1, ij2
-end
-
 end
