@@ -4,9 +4,10 @@ using BufferedStreams
 Optimized function that writes list of edges as tab seperated values
 Tries to be perform as little allocation as possible
 """
-function writetsv(file, ij1, ij2)
-   arr = Vector{UInt8}(64)
-   for (i, j) in zip(ij1, ij2)
+function writetsv(filename, ij)
+   file = BufferedOutputStream(open(filename, "w"))
+   arr = Vector{UInt8}(64) # scratch space for dec!
+   for (i, j) in ij
       nchars = dec!(arr, i)
       writeto(file, arr, nchars)
       write(file, UInt8('\t'))
@@ -14,24 +15,27 @@ function writetsv(file, ij1, ij2)
       writeto(file, arr, nchars)
       write(file, UInt8('\n'))
    end
+   close(file)
+end
+
+function readtsv(filename)
+   file = IOBuffer(Mmap.mmap(open(filename), Vector{UInt8}, (filesize(filename),)))
+   ij = Vector{Tuple{Int64, Int64}}(0)
+   const TAB = UInt8('\t')
+   const NL = UInt8('\n')
+   while !eof(file)
+      i = parseuntil(file,TAB)
+      j = parseuntil(file,NL)
+      push!(ij, (i, j))
+   end
+   close(file)
+   return ij
 end
 
 function writeto(io, arr, nchars)
    @inbounds for i in 1:nchars
       write(io, arr[i])
    end
-end
-
-function readtsv(file)
-   ij1 = Array{Int64}(0)
-   ij2 = Array{Int64}(0)
-   const TAB = UInt8('\t')
-   const NL = UInt8('\n')
-   while !eof(file)
-      push!(ij1, parseuntil(file,TAB))
-      push!(ij2, parseuntil(file,NL))
-   end
-   ij1, ij2
 end
 
 # Assumes positive number

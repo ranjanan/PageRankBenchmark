@@ -9,23 +9,18 @@ function run(scl, EdgesPerVertex)
    info("Number of threads: ", Threads.nthreads())
 
    info("Generating data")
-   @time ij1, ij2 = kronGraph500NoPerm5(scl, EdgesPerVertex)
+   @time ij = kronGraph500NoPerm(scl, EdgesPerVertex)
 
    filename = "1.tsv"
 
    info("Writing data:")
-   file = BufferedOutputStream(open(filename, "w"))
-   @time writetsv(file, ij1, ij2)
-   close(file)
+   @time writetsv(filename, ij)
 
    info("Read data")
-   file = IOBuffer(Mmap.mmap(open(filename), Vector{UInt8}, (filesize(filename),)))
-   @time _ij1, _ij2 = readtsv(file)
-   close(file)
+   @time _ij = readtsv(filename)
 
-   @assert all(ij1 .== _ij1)
-   @assert all(ij2 .== _ij2)
-   ij1, ij2
+   @assert all(ij .== _ij)
+   ij
 end
 
 end
