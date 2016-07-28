@@ -34,11 +34,16 @@ end
 
 function kernel1(filenames)
    info("Read data")
-   rrefs = map(zip(filennames, workers())) do iter
-      filename, id = iter
-      remotecall(readtsv, id, filename)
+   @time begin
+      rrefs = map(zip(filennames, workers())) do iter
+         filename, id = iter
+         remotecall(readtsv, id, filename)
+      end
+      edges = DArray(rrefs)
    end
-   edges = DArray(rrefs)
+
+   info("Sort edges")
+   @time sort(edges)
 end
 
 function run(path, scl, EdgesPerVertex)
@@ -57,6 +62,10 @@ function run(path, scl, EdgesPerVertex)
    info("Executing kernel 1")
    @time kernel1(filenames)
 end
+
+# Two helper functions to make sort work on tuples
+Base.typemin{T}(::Type{Tuple{T,T}}) = (typemin(T),typemin(T))
+Base.typemax{T}(::Type{Tuple{T,T}}) = (typemax(T),typemax(T))
 
 end
 
