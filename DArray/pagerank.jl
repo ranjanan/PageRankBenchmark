@@ -24,17 +24,18 @@ function kernel0(path, scl, EdgesPerVertes)
       edges = DArray(rrefs)
    end
 
+   filenames = Dict(id => joinpath(path, "$i.tsv") for (id, i) in zip(workers(), 1:nworkers()))
    info("Writing data:")
    @time map_localparts(edges) do local_edges
-      filename = joinpath(path, "$(myid()).tsv")
-      writecsv(filename, local_edges)
+      writecsv(filename, filenames[myid()], local_edges)
    end
+   return values(filenames)
 end
 
-function kernel1(path)
+function kernel1(filenames)
    info("Read data")
-   rrefs = map(workers()) do id
-      filename = joinpath(path, "$id.tsv")
+   rrefs = map(zip(filennames, workers())) do iter
+      filename, id = iter
       remotecall(readtsv, id, filename)
    end
    edges = DArray(rrefs)
@@ -46,10 +47,15 @@ function run(path, scl, EdgesPerVertex)
    info("Number of workers: ", nworkers())
 
    info("Executing kernel 0")
-   @time kernel0(path, scl, EdgesPerVertex)
+   @time filenames = kernel0(path, scl, EdgesPerVertex)
+
+   # Shuffle the filenames so that we minimise cache effect
+   # TODO ideally we would like to make sure that no processor reads in
+   # its own file.
+   shuffle!(filenames)
 
    info("Executing kernel 1")
-   @time kernel1(path)
+   @time kernel1(filenames)
 end
 
 end
