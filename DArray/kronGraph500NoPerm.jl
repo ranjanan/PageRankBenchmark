@@ -1,5 +1,5 @@
 # change loop order to reduce loads and stores
-function kronGraph500NoPerm(scl, EdgesPerVertex)
+function kronGraph500NoPerm(scl, nEdges)
 # Graph500NoPerm: Generates graph edges using the same 2x2 Kronecker algorithm (R-MAT) as the Graph500 benchmark, but no permutation of vertex labels is performed.
 # IO user function.
 #   Usage:
@@ -11,20 +11,16 @@ function kronGraph500NoPerm(scl, EdgesPerVertex)
 #     StartVertex = M vector of integer start vertices in the range [1,N]
 #     EndVertex = M vector of integer end vertices in the range [1,N]
 
-    n = 2^scl                             # Set  power of number of vertices..
-
-    m = EdgesPerVertex * n                # Compute total number of edges to generate.
-
     a, b, c = 0.57, 0.19, 0.19
     d = 1 - (a + b + c)                   # Set R-MAT (2x2 Kronecker) coefficeints.
 
-    ij = Vector{Tuple{Int64, Int64}}(m)   # Initialize index arrays.
-    ab = a + b                            # Normalize coefficients.
+    ij = Vector{Tuple{Int64, Int64}}(nEdges)   # Initialize index arrays.
+    ab = a + b                                 # Normalize coefficients.
     c_norm = c/(1 - (a + b))
     a_norm = a/(a + b)
 
     randbuf = Vector{Float64}(2scl)
-    for i = 1:m
+    for i = 1:nEdges
         rand!(randbuf)
         ij1 = one(Int64)
         ij2 = one(Int64)

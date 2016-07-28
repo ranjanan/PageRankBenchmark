@@ -6,8 +6,23 @@ include("kronGraph500NoPerm.jl")
 include("io.jl")
 
 function kernel0(path, scl, EdgesPerVertes)
+   n = 2^scl
+   m = EdgesPerVertex * n # Total number of vertices
+
+   # Make sure that we distribute the workload over the workers.
+   EdgesPerWorker = m ÷ nworkers()
+   surplus = m % nworkers()
+
    info("Generating data")
-   @time edges = DArray(I->kronGraph500NoPerm(scl, EdgesPerVertes), (nworkers(), ))
+   lastWorker = maximum(workers())
+   @time begin
+      rrefs = map(workers()) do id
+         nEdges = EdgesPerWorker
+         nEdges += ifelse(id == lastWorker, surplus, 0)
+         kronGraph500NoPerm(scl, nEdges)
+      end
+      edges = DArray(rrefs)
+   end
 
    info("Writing data:")
    @time map_localparts(edges) do local_edges
