@@ -1,3 +1,8 @@
+function kronGraph500(filename, scl, nEdges)
+    edges = kronGraph500NoPerm(scl, nEdges)
+    writetsv(filename, edges)
+end
+
 # change loop order to reduce loads and stores
 function kronGraph500NoPerm(scl, nEdges)
 # Graph500NoPerm: Generates graph edges using the same 2x2 Kronecker algorithm (R-MAT) as the Graph500 benchmark, but no permutation of vertex labels is performed.

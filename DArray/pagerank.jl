@@ -1,11 +1,10 @@
 module Pagerank
 using DistributedArrays
-import DistributedArrays: map_localparts
 
 include("kronGraph500NoPerm.jl")
 include("io.jl")
 
-function kernel0(path, scl, EdgesPerVertes)
+function kernel0(filenames, scl, EdgesPerVertex)
    n = 2^scl
    m = EdgesPerVertex * n # Total number of vertices
 
@@ -13,29 +12,22 @@ function kernel0(path, scl, EdgesPerVertes)
    EdgesPerWorker = m ÷ nworkers()
    surplus = m % nworkers()
 
-   info("Generating data")
+   @assert length(filenames) == nworkers()
+
    lastWorker = maximum(workers())
-   @time begin
-      rrefs = map(workers()) do id
+   @sync begin
+      for (id, filename) in zip(workers(), filenames)
          nEdges = EdgesPerWorker
          nEdges += ifelse(id == lastWorker, surplus, 0)
-         kronGraph500NoPerm(scl, nEdges)
+         @async remotecall_wait(kronGraph500, id, filename, scl, nEdges)
       end
-      edges = DArray(rrefs)
    end
-
-   filenames = Dict(id => joinpath(path, "$i.tsv") for (id, i) in zip(workers(), 1:nworkers()))
-   info("Writing data:")
-   @time map_localparts(edges) do local_edges
-      writecsv(filename, filenames[myid()], local_edges)
-   end
-   return values(filenames)
 end
 
 function kernel1(filenames)
    info("Read data")
    @time begin
-      rrefs = map(zip(filennames, workers())) do iter
+      rrefs = map(zip(filenames, workers())) do iter
          filename, id = iter
          remotecall(readtsv, id, filename)
       end
@@ -51,8 +43,10 @@ function run(path, scl, EdgesPerVertex)
    info("EdgesPerVertex:", EdgesPerVertex)
    info("Number of workers: ", nworkers())
 
+   filenames = collect(joinpath(path, "$i.tsv") for i in 1:nworkers())
+
    info("Executing kernel 0")
-   @time filenames = kernel0(path, scl, EdgesPerVertex)
+   @time kernel0(filenames, scl, EdgesPerVertex)
 
    # Shuffle the filenames so that we minimise cache effect
    # TODO ideally we would like to make sure that no processor reads in
