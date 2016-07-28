@@ -1,5 +1,8 @@
 # Input is a vector of futures
-function create_adj_matrix(fvectors)      
+function create_adj_matrix(fvectors, maxI, maxJ)
+   firstWorker = first(workers())
+   lastWorker = last(workers())
+
    rrefs = map(fvectors) do fvec
       remotecall(fvec.where) do
          edges = fetch(fvec)
@@ -9,35 +12,33 @@ function create_adj_matrix(fvectors)
          J = Vector{Int64}(length(edges))
          V = Vector{Int64}(length(edges))
 
-         min_i = first(edges)[1] - 1
-         max_j = 0
-         max_i = 0
+         min_i = ifelse(myid() == firstWorker, 1, first(edges)[1]) - 1
+         max_i = last(edges)[1]
 
          for ind in eachindex(edges, I, J, V)
             i, j = edges[ind]
             i = i - min_i # localparts of sparse matrix need to start at 1
-            max_j = ifelse(j > max_j, j, max_j)
-            max_i = ifelse(i > max_i, i, max_i)
             I[ind] = i
             J[ind] = j
             V[ind] = 1
          end
-         (I, J, V, max_i, max_j)
+         (I, J, V, max_i, min_i)
       end
    end
 
    # Collect the maxium
-   max_js = map(rrefs) do rref
-      remotecall_fetch(r -> fetch(r)[5], rref.where, rref)
+   max_is = map(rrefs) do rref
+      remotecall_fetch(r -> fetch(r)[4], rref.where, rref)
    end
 
-   max_j = maximum(max_js)
+   surplus = maxI - maximum(max_is)
 
    # Construct sparse array
    lparts = map(rrefs) do rref
       remotecall(rref.where, rref) do ref
-         (I, J, V, max_i, mj) = fetch(ref) # max_i needs to be local, max_j needs to be global
-         sparse(I, J, V, max_i, max_j)
+         (I, J, V, max_i, min_i) = fetch(ref) # max_i needs to be local, maxJ needs to be global
+         max_i = ifelse(myid() == lastWorker, max_i + surplus, max_i) - min_i
+         sparse(I, J, V, max_i, maxJ)
       end
    end
    return DArray(reshape(lparts, (length(lparts), 1)))
