@@ -3,6 +3,7 @@ using DistributedArrays
 
 include("kronGraph500NoPerm.jl")
 include("io.jl")
+include("dsparse.jl") # Provides create_adj_matrix
 
 function kernel0(filenames, scl, EdgesPerVertex)
    n = 2^scl
@@ -24,64 +25,28 @@ function kernel0(filenames, scl, EdgesPerVertex)
    end
 end
 
-function kernel1(filenames)
+function kernel1(filenames, path)
    info("Read data")
-   @time begin
-      rrefs = map(zip(filenames, workers())) do iter
-         filename, id = iter
-         remotecall(readtsv, id, filename)
-      end
-      edges = DArray(rrefs)
-   end
+   @time edges = DArray(dread(filenames)) # DArrayt construction will wait on the futures
 
    info("Sort edges")
    @time sorted_edges = sort(edges)
    close(edges)
 
-   info("Turn into adjacency matrix")
+   info("Write edges")
+   filenames = collect(joinpath(path, "chunk_$i.tsv") for i in 1:nworkers())
+   @time dwrite(filenames, sorted_edges)
+   filenames
+end
+
+function kernel2(filenames)
+   info("Read data and turn it into a sparse matrix")
    @time begin
-      rrefs = map(workers()) do id
-         remotecall(id) do
-            ledges = localpart(sorted_edges)
-            # SparseMatrixCSC only accepts I, J, V for construction
-            # So this is fairly expensive
-            I = Vector{Int64}(length(ledges))
-            J = Vector{Int64}(length(ledges))
-            V = Vector{Int64}(length(ledges))
-
-            min_i = first(ledges)[1] - 1
-            max_j = 0
-            max_i = 0
-
-            for ind in eachindex(ledges, I, J, V)
-               i, j = ledges[ind]
-               i = i - min_i # localparts of sparse matrix need to start at 1
-               max_j = ifelse(j > max_j, j, max_j)
-               max_i = ifelse(i > max_i, i, max_i)
-               I[ind] = i
-               J[ind] = j
-               V[ind] = 1
-            end
-            (I, J, V, max_i, max_j)
-         end
-      end
-
-      # Collect the maxium
-      max_js = map(rrefs) do rref
-         remotecall_fetch(r -> fetch(r)[5], rref.where, rref)
-      end
-
-      max_j = maximum(max_js)
-
-      # Construct sparse array
-      lparts = map(rrefs) do rref
-         remotecall(rref.where, rref) do ref
-            (I, J, V, max_i, mj) = fetch(ref) # max_i needs to be local, max_j needs to be global
-            sparse(I, J, V, max_i, max_j)
-         end
-      end
-      adj_matrix = DArray(reshape(lparts, (length(lparts), 1)))
+      rrefs = dread(filenames)
+      adj_matrix = create_adj_matrix(rrefs)
    end
+
+   adj_matrix
 end
 
 function run(path, scl, EdgesPerVertex)
@@ -100,7 +65,26 @@ function run(path, scl, EdgesPerVertex)
    shuffle!(filenames)
 
    info("Executing kernel 1")
-   @time kernel1(filenames)
+   # The filenames changed and for the darray construction we need to retain order...
+   @time filenames = kernel1(filenames, path)
+
+   info("Executing kernel 2")
+   @time adj_matrix = kernel2(filenames)
+end
+
+function dread(filenames)
+   map(zip(filenames, workers())) do iter
+      filename, id = iter
+      remotecall(readtsv, id, filename)
+   end
+end
+
+function dwrite(filenames, edges)
+   @sync for (id, filename) in zip(workers(), filenames)
+      @async remotecall_wait(id, filename) do filename
+         writetsv(filename, localpart(edges))
+      end
+   end
 end
 
 # Two helper functions to make sort work on tuples
