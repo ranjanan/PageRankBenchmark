@@ -17,10 +17,13 @@ function read_edges(filename, delim = '\t', linesep = '\n')
 end
 
 function read_edges(:: Type{Tuple{Int64, Int64}}, filename :: String, delim = '\t', linesep = '\n')
-   file = IOBuffer(Mmap.mmap(open(filename), Vector{UInt8}, (filesize(filename),)))
+   data = Mmap.mmap(open(filename), Vector{UInt8}, (filesize(filename),))
+   file = IOBuffer(data)
    ij = Vector{Tuple{Int64, Int64}}(0)
    read_edges!(ij, file, UInt8(delim), UInt8(linesep))
    close(file)
+   finalize(data)
+   data = nothing
    return ij
 end
 
