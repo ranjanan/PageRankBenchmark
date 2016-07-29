@@ -2,7 +2,7 @@ module Pagerank
 using DistributedArrays
 
 include("kronGraph500NoPerm.jl")
-include("io.jl")
+include("../io/io.jl")
 include("dsparse.jl") # Provides create_adj_matrix
 
 function kernel0(filenames, scl, EdgesPerVertex)
