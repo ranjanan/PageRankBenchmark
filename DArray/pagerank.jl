@@ -44,7 +44,7 @@ function kernel2(filenames, N)
    info("Read data and turn it into a sparse matrix")
    @time begin
       rrefs = dread(filenames)
-      adj_matrix = create_adj_matrix(rrefs, N, N)
+      adj_matrix = create_adj_matrix(rrefs, N)
       rrefs = nothing
    end
 
