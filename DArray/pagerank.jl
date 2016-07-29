@@ -3,6 +3,7 @@ using DistributedArrays
 
 include("kronGraph500NoPerm.jl")
 include("../io/io.jl")
+using .PagerankIO
 include("dsparse.jl") # Provides create_adj_matrix
 
 function kernel0(filenames, scl, EdgesPerVertex)
@@ -90,14 +91,14 @@ end
 function dread(filenames)
    map(zip(filenames, workers())) do iter
       filename, id = iter
-      remotecall(readtsv, id, filename)
+      remotecall(read_edges, id, filename)
    end
 end
 
 function dwrite(filenames, edges)
    @sync for (id, filename) in zip(workers(), filenames)
       @async remotecall_wait(id, filename) do filename
-         writetsv(filename, localpart(edges))
+         write_edges(filename, localpart(edges))
       end
    end
 end

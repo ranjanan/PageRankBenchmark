@@ -1,6 +1,6 @@
 function kronGraph500(filename, scl, nEdges)
     edges = kronGraph500NoPerm(scl, nEdges)
-    writetsv(filename, edges)
+    write_edges(filename, edges)
 end
 
 # change loop order to reduce loads and stores
