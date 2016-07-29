@@ -1,6 +1,6 @@
 using BufferedStreams
 
-function write_edges(filename ::String, I, J, delim = '\t', linesep = '\n')
+function write_edges(filename ::String, I :: Vector{Int64}, J :: Vector{Int64}, delim = '\t', linesep = '\n')
    write_edges(filename, zip(I, J), delim, linesep)
 end
 
