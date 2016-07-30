@@ -31,7 +31,7 @@ function kernel1(filenames, path)
    @time edges = DArray(dread(filenames)) # DArrayt construction will wait on the futures
 
    info("Sort edges")
-   @time sorted_edges = sort(edges)
+   @time sorted_edges = sort(edges, by = first)
    close(edges)
 
    info("Write edges")
