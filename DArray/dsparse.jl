@@ -27,12 +27,12 @@ function create_adj_matrix(fvectors, N)
          J = Vector{Int64}(length(edges))
          V = Vector{Int64}(length(edges))
 
-         min_i = ifelse(myid() == firstWorker, 1, first(edges)[1]) - 1
+         min_i = ifelse(myid() == firstWorker, 1, first(edges)[1])
          max_i = last(edges)[1]
 
          for ind in eachindex(edges, I, J, V)
             i, j = edges[ind]
-            i = i - min_i # localparts of sparse matrix need to start at 1
+            i = i - (min_i - 1) # localparts of sparse matrix need to start at 1
             I[ind] = i
             J[ind] = j
             V[ind] = 1
@@ -63,7 +63,7 @@ function create_adj_matrix(fvectors, N)
    lparts = map(rrefs) do rref
       remotecall(rref.where, rref) do ref
          (I, J, V, max_i, min_i) = fetch(ref)
-         max_i = ifelse(myid() == lastWorker, max_i + surplus, max_i) - min_i
+         max_i = ifelse(myid() == lastWorker, max_i + surplus, max_i) - (min_i - 1)
          sparse(I, J, V, max_i, N)
       end
    end
