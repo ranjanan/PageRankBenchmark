@@ -10,10 +10,10 @@ function writetsv(filename, ij)
    for (i, j) in ij
       nchars = dec!(arr, i)
       writeto(file, arr, nchars)
-      write(file, UInt8('\t'))
+      write(file, '\t' % UInt8)
       nchars = dec!(arr, j)
       writeto(file, arr, nchars)
-      write(file, UInt8('\n'))
+      write(file, '\n' % UInt8)
    end
    close(file)
 end
@@ -21,11 +21,9 @@ end
 function readtsv(filename)
    file = IOBuffer(Mmap.mmap(open(filename), Vector{UInt8}, (filesize(filename),)))
    ij = Vector{Tuple{Int64, Int64}}(0)
-   const TAB = UInt8('\t')
-   const NL = UInt8('\n')
    while !eof(file)
-      i = parseuntil(file,TAB)
-      j = parseuntil(file,NL)
+      i = parseuntil(file, '\t' % UInt8)
+      j = parseuntil(file, '\n' % UInt8)
       push!(ij, (i, j))
    end
    close(file)
@@ -45,7 +43,7 @@ function dec!(arr::Vector{UInt8}, x::Int64)
       resize!(arr, i)
    end
    while i > 0
-      arr[i] = '0'+rem(x,10)
+      arr[i] = ('0'+rem(x,10)) % UInt8
       x ÷= 10
       i -= 1
    end
@@ -58,10 +56,9 @@ end
 function parseuntil(file, delim::UInt8)
    v = 0
    b = read(file, UInt8)
-   const ZERO = UInt8('0')
    while b != delim
       v *= 10
-      v += b - ZERO
+      v += b - ('0' % UInt8)
       b = read(file, UInt8)
    end
    v
