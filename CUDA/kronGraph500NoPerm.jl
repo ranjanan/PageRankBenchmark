@@ -1,5 +1,3 @@
-module PageRank
-
 using CUDAdrv, CUDAnative
 
 
