@@ -28,7 +28,7 @@ function main(args)
         isfile(entrypoint) || error("Implementation $impl does not have an entrypoint pagerank.jl")
         include(entrypoint)
 
-        mod = @eval $(Symbol("PageRank$target"))
+        mod = @eval $(Symbol("PageRank$(ucfirst(target))"))
         state = @eval $mod.setup()
 
         # Process all kernels
