@@ -67,5 +67,5 @@ function create_adj_matrix(fvectors, N)
          sparse(I, J, V, max_i, N)
       end
    end
-   return DistributedArrays.DArray(reshape(lparts, (length(lparts), 1)))
+   return DArray(reshape(lparts, (length(lparts), 1)))
 end

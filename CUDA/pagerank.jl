@@ -1,7 +1,6 @@
 using CUDAdrv, CUDAnative
 
-module PageRank
-module CUDA
+module PageRankCUDA
 
 include("kronGraph500NoPerm.jl")
 include("../common/common.jl")
@@ -42,5 +41,4 @@ function kernel0(state, dir, scl, EdgesPerVertex)
     return file
 end
 
-end
 end

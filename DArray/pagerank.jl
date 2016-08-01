@@ -1,5 +1,5 @@
-module PageRank
-module DArray
+module PageRankDArray
+
 using DistributedArrays
 
 include("kronGraph500NoPerm.jl")
@@ -53,7 +53,7 @@ function kernel1(state, dir, files, n)
    shuffle!(files)
 
    info("Read data")
-   @time edges = DistributedArrays.DArray(dread(files)) # DArray construction will wait on the futures
+   @time edges = DArray(dread(files)) # DArray construction will wait on the futures
 
    info("Sort edges")
    @time sorted_edges = sort(edges, by = first)
@@ -114,5 +114,4 @@ end
 Base.typemin{T}(::Type{Tuple{T,T}}) = (typemin(T),typemin(T))
 Base.typemax{T}(::Type{Tuple{T,T}}) = (typemax(T),typemax(T))
 
-end
 end
