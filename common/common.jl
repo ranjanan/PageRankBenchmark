@@ -1,4 +1,4 @@
-module PageRank
+module Common
     # I/O
     export write_edges, read_edges, uncache
     include("read.jl")

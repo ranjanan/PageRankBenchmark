@@ -5,6 +5,7 @@ module CUDA
 
 include("kronGraph500NoPerm.jl")
 include("../common/common.jl")
+using .Common
 
 
 #
@@ -29,23 +30,17 @@ end
 
 
 #
-# Kernel 0
+# Pipeline
 #
 
-type Kernel0Args
-    filepath::String
-    scl::Int
-    EdgesPerVertex::Int
+function kernel0(state, dir, scl, EdgesPerVertex)
+    file = joinpath(dir, "0.tsv")
+
+    ij1, ij2 = kronGraph500NoPerm_shuffle(scl, EdgesPerVertex)
+    write_edges(file, ij1, ij2)
+
+    return file
 end
-
-kernel0_setup(state, filepath, scl, EdgesPerVertex) = return Kernel0Args(filepath, scl, EdgesPerVertex)
-
-function kernel0(state, args)
-   ij1, ij2 = kronGraph500NoPerm_shuffle(args.scl, args.EdgesPerVertex)
-   PageRank.write_edges(args.filepath, ij1, ij2)
-end
-
-kernel0_teardown(state, args) = return nothing
 
 end
 end
