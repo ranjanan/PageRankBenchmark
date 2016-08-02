@@ -30,6 +30,20 @@ function main(args)
         "--verbose","-v"
             action = :store_true
             help = "verbose output"
+        "--workdir", "-w"
+            arg_type = String
+            help = "directory to write output files to"
+            default = "/tmp"
+        "--scale", "-s"
+            arg_type = Int
+            help = "scale of the initial graph"
+            default = 20
+            range_tester = x -> x>0
+        "--edge_factor", "-e"
+            arg_type = Int
+            help = "edge factor of the initial graph"
+            default = 16
+            range_tester = x -> x>0
         "implementations"
             nargs = '+'
             required = true
@@ -49,7 +63,7 @@ function main(args)
         state = @eval $mod.setup()
 
         # Process all kernels
-        kernel_args = ("/tmp", 20, 16)
+        kernel_args = (parsed_args["workdir"], parsed_args["scale"], parsed_args["edge_factor"])
         for k in 0:3
             isdefined(mod, Symbol("kernel$k")) || break
             kernel = @eval $mod.$(Symbol("kernel$(k)"))
