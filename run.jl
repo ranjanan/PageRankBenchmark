@@ -3,6 +3,23 @@
 using ArgParse
 using BenchmarkTools
 
+
+#=
+
+Implementation interface
+------------------------
+
+- make sure $NAME/pagerank.jl exists and defines module PageRank$(ucfirst(NAME))
+- provide setup() returning a global state, and teardown() to destroy it
+  if you don't need global state, just return `nothing`
+- provide kernel$n(...) methods with following function signature requirements:
+  - last argument represents the global state
+    if you don't care about state, provide a default value of `nothing` for ease of REPL use
+  - kernel0(output_directory, scale, edge_factor, scale=see_previous_point)
+  - other kernels: return values of previous kernel is passed as-is (along with the state)
+
+=#
+
 function main(args)
     s = ArgParseSettings(description = "PageRank benchmark driver")
     @add_arg_table s begin
