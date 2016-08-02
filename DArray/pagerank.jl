@@ -12,10 +12,7 @@ using .Common
 # Global state
 #
 
-typealias BenchmarkState Void
-
-setup() = return BenchmarkState()
-
+setup() = return nothing
 teardown(state) = return nothing
 
 
@@ -23,7 +20,7 @@ teardown(state) = return nothing
 # Pipeline
 #
 
-function kernel0(state, dir, scl, EdgesPerVertex)
+function kernel0(dir, scl, EdgesPerVertex, state=nothing)
    files = collect(joinpath(dir, "$i.tsv") for i in 1:nworkers())
 
    n = 2^scl # Total number of vertices
@@ -46,7 +43,7 @@ function kernel0(state, dir, scl, EdgesPerVertex)
    return dir, files, n
 end
 
-function kernel1(state, dir, files, n)
+function kernel1(dir, files, n, state=nothing)
    # Shuffle the files so that we minimize cache effect
    # TODO ideally we would like to make sure that no processor reads in
    # its own file.
@@ -66,7 +63,7 @@ function kernel1(state, dir, files, n)
    return files, n
 end
 
-function kernel2(state, files, n)
+function kernel2(files, n, state=nothing)
    info("Read data and turn it into a sparse matrix")
    @time begin
       rrefs = dread(files)

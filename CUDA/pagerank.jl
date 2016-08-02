@@ -32,7 +32,7 @@ end
 # Pipeline
 #
 
-function kernel0(state, dir, scl, EdgesPerVertex)
+function kernel0(dir, scl, EdgesPerVertex, state=nothing)
     file = joinpath(dir, "0.tsv")
 
     ij1, ij2 = kronGraph500NoPerm_shuffle(scl, EdgesPerVertex)

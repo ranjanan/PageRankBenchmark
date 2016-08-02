@@ -39,7 +39,7 @@ function main(args)
 
             # Run the kernel
             println("Running kernel $k...")
-            kernel_expr = :( $kernel($state, $(kernel_args...)) )
+            kernel_expr = :( $kernel($(kernel_args...), $state) )
             kernel_output = @eval $kernel_expr
 
             # Benchmark this kernel if requested

@@ -24,10 +24,7 @@ const Nfile = 4
 const Niter = 20                                      # Number of PageRank iterations.
 const damping = 0.15                                        # PageRank damping factor.
 
-typealias BenchmarkState Void
-
-setup() = return BenchmarkState()
-
+setup() = return nothing
 teardown(state) = return nothing
 
 
@@ -38,7 +35,7 @@ teardown(state) = return nothing
 ########################################################
 # Kernel 0: Generate a Graph500 Kronecker graph and save to data files.
 ########################################################
-function kernel0(state, dir, SCALE, EdgesPerVertex)
+function kernel0(dir, SCALE, EdgesPerVertex, state=nothing)
   Nmax = 2.^SCALE;                           # Max vertex ID.
   M = EdgesPerVertex .* Nmax;                # Total number of edges.
   myFiles = collect(1:Nfile).';              # Set list of files.
@@ -62,7 +59,7 @@ end
 ########################################################
 # Kernel 1: Read data, sort data, and save to files.
 ########################################################
-function kernel1(state, myFiles, dir, Nmax)
+function kernel1(myFiles, dir, Nmax, state=nothing)
   # Read in all the files into one array.
   for i in myFiles
     fname = joinpath(dir, "kernel0_$i.tsv")
@@ -101,7 +98,7 @@ end
 ########################################################
 # Kernel 2: Read data, filter data.
 ########################################################
-function kernel2(state, myFiles, dir, u, v, Nmax)
+function kernel2(myFiles, dir, u, v, Nmax, state=nothing)
   # Read in all the files into one array.
   for i in myFiles
     fname = joinpath(dir, "kernel1_$i.tsv")
@@ -134,7 +131,7 @@ end
 ########################################################
 # Kernel 3: Compute PageRank.
 ########################################################
-function kernel3(state, Nmax, A)
+function kernel3(Nmax, A, state=nothing)
   r = rand(1,Nmax);                     # Generate a random starting rank.
   r = r ./ norm(r,1);                   # Normalize
   a = (1-damping) ./ Nmax;                    # Create damping vector
